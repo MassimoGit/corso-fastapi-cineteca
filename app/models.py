@@ -1,4 +1,4 @@
-"""I model ORM di Room e Movie nello schema cineteca."""
+"""I model ORM di Room, Movie e Review nello schema cineteca."""
 from sqlalchemy import MetaData, String, Text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -26,3 +26,14 @@ class Movie(Base):
     runtime_min: Mapped[int]
     purchase_price_eur: Mapped[int]
     plot: Mapped[str | None] = mapped_column(Text)
+
+
+class Review(Base):
+    __tablename__ = "reviews"
+
+    review_id: Mapped[int] = mapped_column(primary_key=True)
+    movie_id: Mapped[int]
+    author: Mapped[str] = mapped_column(String(20))
+    rating: Mapped[int]
+    text: Mapped[str] = mapped_column(String(500))
+    has_spoilers: Mapped[bool]
