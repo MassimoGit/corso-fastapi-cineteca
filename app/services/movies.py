@@ -40,3 +40,19 @@ def delete_movie(session: Session, movie_id: int) -> None:
     if not movies_data.delete_movie(session, movie_id):
         raise MovieNotFoundError(movie_id)
     session.commit()
+
+
+def list_catalogue(session: Session) -> list[tuple]:
+    return movies_data.list_catalogue(session)
+
+
+def list_cast(session: Session, movie_id: int) -> list[tuple]:
+    get_movie(session, movie_id)  # regola: il film deve esistere, altrimenti MovieNotFoundError
+    return movies_data.list_cast(session, movie_id)
+
+
+def get_movie_detail(session: Session, movie_id: int) -> Movie:
+    movie = movies_data.get_movie_detail(session, movie_id)
+    if movie is None:
+        raise MovieNotFoundError(movie_id)
+    return movie

@@ -24,11 +24,19 @@ class MovieConflictError(Exception):
         super().__init__("movie already in the catalogue or director_id not found")
 
 
+class DirectorConflictError(Exception):
+    """Esiste già un regista con questo nome."""
+
+    def __init__(self, name: str):
+        super().__init__(f"director {name} already exists")
+
+
 # Quale status HTTP corrisponde a quale eccezione del dominio. È l'unico punto che conosce entrambi i mondi.
 STATUS_BY_ERROR = {
     MovieNotFoundError: status.HTTP_404_NOT_FOUND,
     RoomNotFoundError: status.HTTP_404_NOT_FOUND,
     MovieConflictError: status.HTTP_409_CONFLICT,
+    DirectorConflictError: status.HTTP_409_CONFLICT,
 }
 
 

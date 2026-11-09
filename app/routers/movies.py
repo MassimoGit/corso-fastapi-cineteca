@@ -2,7 +2,7 @@
 from fastapi import APIRouter, status
 
 from app.dependencies import MovieDep, PageDep, SessionDep
-from app.schemas import MovieCreate, MovieRead, MovieUpdate
+from app.schemas import CastMember, MovieCreate, MovieDetail, MovieRead, MovieUpdate
 from app.services import movies as movies_service
 
 router = APIRouter(prefix="/movies", tags=["movies"])
@@ -22,6 +22,16 @@ def list_movies(
 @router.get("/{movie_id}", responses={404: {"description": "The movie does not exist"}})
 def get_movie(movie: MovieDep) -> MovieRead:
     return movie
+
+
+@router.get("/{movie_id}/detail", responses={404: {"description": "The movie does not exist"}})
+def get_movie_detail(movie_id: int, session: SessionDep) -> MovieDetail:
+    return movies_service.get_movie_detail(session, movie_id)
+
+
+@router.get("/{movie_id}/cast", responses={404: {"description": "The movie does not exist"}})
+def list_cast(movie_id: int, session: SessionDep) -> list[CastMember]:
+    return movies_service.list_cast(session, movie_id)
 
 
 @router.post(

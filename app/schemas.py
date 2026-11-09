@@ -87,3 +87,53 @@ class ReviewRead(ReviewCreate):
     review_id: int
     movie_id: int
     author: str
+
+
+class DirectorRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    director_id: int
+    name: str
+
+
+class DirectorCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=100)
+
+
+class ActorRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    actor_id: int
+    name: str
+
+
+# Schemi per le righe delle query: i nomi dei campi sono le etichette (label) scelte nella query,
+# e non devono essere per forza colonne di un model.
+class CatalogueRow(BaseModel):
+    movie_id: int
+    title: str
+    release_year: int
+    director_name: str
+
+
+class CastMember(BaseModel):
+    actor: str
+    character: str
+
+
+class DirectorStats(BaseModel):
+    director: str
+    movies: int
+
+
+# Schemi annidati costruiti dalle relationship: il film con il suo regista e il suo cast.
+class CastRole(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    character_name: str
+    actor: ActorRead
+
+
+class MovieDetail(MovieRead):
+    director: DirectorRead
+    cast: list[CastRole]
