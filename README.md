@@ -1,6 +1,6 @@
-# Cineteca API: codice della lezione API04A
+# Cineteca API: codice della lezione API04B
 
-Server FastAPI e script degli esempi come sono alla fine della lezione API04A del corso.
+Server FastAPI e script degli esempi come sono alla fine della lezione API04B del corso.
 Ogni branch è una lezione: `git diff api04b api05` mostra cosa cambia fra due lezioni.
 
 ```bash
