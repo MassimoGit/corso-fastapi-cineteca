@@ -1,13 +1,25 @@
 """Le dependency dell'app: funzioni che FastAPI esegue prima dell'endpoint che le dichiara."""
+from collections.abc import Iterator
 from typing import Annotated
 
 from fastapi import Depends, Header, HTTPException, Query, Request, status
+from sqlalchemy.orm import Session
 
-from app.database import Settings, get_settings
+from app.database import Settings, engine, get_settings
 from app.models import Movie
 from app.services import movies as movies_service
 
 SettingsDep = Annotated[Settings, Depends(get_settings)]
+
+
+def get_session() -> Iterator[Session]:
+    """Una Session per richiesta: la usano route, servizi e dati, e si chiude a richiesta finita."""
+    # expire_on_commit=False: dopo il commit gli oggetti restano leggibili, senza una nuova SELECT
+    with Session(engine, expire_on_commit=False) as session:
+        yield session
+
+
+SessionDep = Annotated[Session, Depends(get_session)]
 
 
 def pagination(
@@ -21,9 +33,9 @@ def pagination(
 PageDep = Annotated[dict, Depends(pagination)]
 
 
-def get_movie_or_404(movie_id: int) -> Movie:
+def get_movie_or_404(movie_id: int, session: SessionDep) -> Movie:
     """Il film del path, oppure la risposta 404: il servizio solleva MovieNotFoundError e il gestore la traduce."""
-    return movies_service.get_movie(movie_id)
+    return movies_service.get_movie(session, movie_id)
 
 
 MovieDep = Annotated[Movie, Depends(get_movie_or_404)]

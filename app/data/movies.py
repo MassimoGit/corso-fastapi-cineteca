@@ -1,15 +1,14 @@
-"""Il livello dati dei film: l'unico che parla con il database. Ogni funzione apre la sua Session."""
+"""Il livello dati dei film: l'unico che parla con il database. Riceve la Session, non la apre e non fa commit."""
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.database import engine
 from app.errors import MovieConflictError
 from app.models import Movie
 
 
 def list_movies(
-    director_id: int | None, max_runtime: int | None, search: str | None, skip: int, limit: int
+    session: Session, director_id: int | None, max_runtime: int | None, search: str | None, skip: int, limit: int
 ) -> list[Movie]:
     query = select(Movie).order_by(Movie.movie_id)
     if director_id is not None:
@@ -19,53 +18,44 @@ def list_movies(
     if search is not None:
         query = query.where(Movie.title.ilike(f"%{search}%"))
     query = query.offset(skip).limit(limit)
-    with Session(engine) as session:
-        return session.scalars(query).all()
+    return session.scalars(query).all()
 
 
-def get_movie(movie_id: int) -> Movie | None:
+def get_movie(session: Session, movie_id: int) -> Movie | None:
     """Il film con questo id, oppure None: cosa farne lo decide il servizio."""
-    with Session(engine) as session:
-        return session.get(Movie, movie_id)
+    return session.get(Movie, movie_id)
 
 
-def create_movie(values: dict) -> Movie:
+def create_movie(session: Session, values: dict) -> Movie:
     movie = Movie(**values)
-    with Session(engine) as session:
-        session.add(movie)
-        _commit(session)
-        session.refresh(movie)
-        return movie
+    session.add(movie)
+    _flush(session)
+    return movie
 
 
-def update_movie(movie_id: int, changes: dict) -> Movie | None:
+def update_movie(session: Session, movie_id: int, changes: dict) -> Movie | None:
     """Applica i campi cambiati. Restituisce None se il film non esiste."""
-    with Session(engine) as session:
-        movie = session.get(Movie, movie_id)
-        if movie is None:
-            return None
-        for name, value in changes.items():
-            setattr(movie, name, value)
-        _commit(session)
-        session.refresh(movie)
-        return movie
+    movie = session.get(Movie, movie_id)
+    if movie is None:
+        return None
+    for name, value in changes.items():
+        setattr(movie, name, value)
+    _flush(session)
+    return movie
 
 
-def delete_movie(movie_id: int) -> bool:
+def delete_movie(session: Session, movie_id: int) -> bool:
     """False se il film non esiste."""
-    with Session(engine) as session:
-        movie = session.get(Movie, movie_id)
-        if movie is None:
-            return False
-        session.delete(movie)
-        session.commit()
-        return True
+    movie = session.get(Movie, movie_id)
+    if movie is None:
+        return False
+    session.delete(movie)
+    return True
 
 
-def _commit(session: Session) -> None:
-    """Il commit con il vincolo del database tradotto in un'eccezione del dominio."""
+def _flush(session: Session) -> None:
+    """Manda le modifiche al database: un vincolo violato diventa un'eccezione del dominio."""
     try:
-        session.commit()
+        session.flush()
     except IntegrityError:
-        session.rollback()
         raise MovieConflictError()

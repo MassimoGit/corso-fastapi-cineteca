@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     database_url: SecretStr
     echo_sql: bool = False
     app_name: str = "Cineteca API"
-    app_version: str = "0.6.0"
+    app_version: str = "0.7.0"
     # Le tessere dei clienti della cineteca: chi può scrivere una recensione
     spectators: list[str] = ["giulia_88", "marco_cine", "anna_film", "luca_77"]
 

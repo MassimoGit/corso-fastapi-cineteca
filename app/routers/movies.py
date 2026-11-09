@@ -1,7 +1,7 @@
 """Le routes dei film."""
 from fastapi import APIRouter, status
 
-from app.dependencies import MovieDep, PageDep
+from app.dependencies import MovieDep, PageDep, SessionDep
 from app.schemas import MovieCreate, MovieRead, MovieUpdate
 from app.services import movies as movies_service
 
@@ -10,12 +10,13 @@ router = APIRouter(prefix="/movies", tags=["movies"])
 
 @router.get("")
 def list_movies(
+    session: SessionDep,
     page: PageDep,
     director_id: int | None = None,
     max_runtime: int | None = None,
     search: str | None = None,
 ) -> list[MovieRead]:
-    return movies_service.list_movies(director_id, max_runtime, search, page["skip"], page["limit"])
+    return movies_service.list_movies(session, director_id, max_runtime, search, page["skip"], page["limit"])
 
 
 @router.get("/{movie_id}", responses={404: {"description": "The movie does not exist"}})
@@ -28,8 +29,8 @@ def get_movie(movie: MovieDep) -> MovieRead:
     status_code=status.HTTP_201_CREATED,
     responses={409: {"description": "Movie already in the catalogue or director_id not found"}},
 )
-def create_movie(movie: MovieCreate) -> MovieRead:
-    return movies_service.create_movie(movie)
+def create_movie(movie: MovieCreate, session: SessionDep) -> MovieRead:
+    return movies_service.create_movie(session, movie)
 
 
 @router.patch(
@@ -39,8 +40,8 @@ def create_movie(movie: MovieCreate) -> MovieRead:
         409: {"description": "Movie already in the catalogue or director_id not found"},
     },
 )
-def update_movie(movie_id: int, changes: MovieUpdate) -> MovieRead:
-    return movies_service.update_movie(movie_id, changes.model_dump(exclude_unset=True))
+def update_movie(movie_id: int, changes: MovieUpdate, session: SessionDep) -> MovieRead:
+    return movies_service.update_movie(session, movie_id, changes.model_dump(exclude_unset=True))
 
 
 @router.delete(
@@ -48,5 +49,5 @@ def update_movie(movie_id: int, changes: MovieUpdate) -> MovieRead:
     status_code=status.HTTP_204_NO_CONTENT,
     responses={404: {"description": "The movie does not exist"}},
 )
-def delete_movie(movie_id: int) -> None:
-    movies_service.delete_movie(movie_id)
+def delete_movie(movie_id: int, session: SessionDep) -> None:
+    movies_service.delete_movie(session, movie_id)
