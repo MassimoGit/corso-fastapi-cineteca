@@ -1,4 +1,4 @@
-"""La prima query: i primi tre clienti dell'helpdesk, in ordine alfabetico."""
+"""Un segnaposto senza il suo valore: la query non parte."""
 import os
 from pathlib import Path
 
@@ -10,9 +10,7 @@ load_dotenv(BASE / ".env")
 
 engine = create_engine(os.getenv("DATABASE_URL"))
 
-query = text("SELECT id_cliente, ragione_sociale, piano FROM clienti ORDER BY ragione_sociale LIMIT 3")
+query = text("SELECT id_ticket, oggetto FROM ticket WHERE id_cliente = :customer_id")
 
 with engine.connect() as conn:
-    result = conn.execute(query)
-    for row in result:
-        print(row)
+    rows = conn.execute(query).all()

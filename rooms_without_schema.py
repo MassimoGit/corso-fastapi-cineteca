@@ -1,4 +1,4 @@
-"""La prima connessione: create_engine non si collega a niente, connect sì."""
+"""Senza il nome dello schema, la tabella rooms non si trova."""
 import os
 from pathlib import Path
 
@@ -9,8 +9,6 @@ BASE = Path(__file__).resolve().parent
 load_dotenv(BASE / ".env")
 
 engine = create_engine(os.getenv("DATABASE_URL"))
-print("engine creato:", engine)
 
 with engine.connect() as conn:
-    version = conn.execute(text("SELECT version()")).scalar()
-    print("server:", version)
+    print(conn.execute(text("SELECT count(*) FROM rooms")).scalar())
