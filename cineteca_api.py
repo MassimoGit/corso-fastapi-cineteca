@@ -1,88 +1,66 @@
-"""L'API della cineteca, seconda versione: path parameter, query parameter e body con Pydantic."""
-from typing import Annotated
-
-from fastapi import FastAPI, Path, Query
+"""L'API della cineteca, terza versione: status code, 404, 409, 204 e response_model."""
+from fastapi import FastAPI, HTTPException, status
 from pydantic import BaseModel, Field
 
-app = FastAPI(title="Cineteca API", version="0.2.0")
+app = FastAPI(title="Cineteca API", version="0.3.0")
 
 MOVIES = [
-    {"movie_id": 1, "title": "Interstellar", "director": "Christopher Nolan", "release_year": 2014, "runtime_min": 169},
-    {"movie_id": 2, "title": "La vita è bella", "director": "Roberto Benigni", "release_year": 1997, "runtime_min": 116},
-    {"movie_id": 3, "title": "Il buono, il brutto, il cattivo", "director": "Sergio Leone", "release_year": 1966, "runtime_min": 178},
-    {"movie_id": 4, "title": "La città incantata", "director": "Hayao Miyazaki", "release_year": 2001, "runtime_min": 125},
-    {"movie_id": 5, "title": "Inception", "director": "Christopher Nolan", "release_year": 2010, "runtime_min": 148},
+    {"movie_id": 1, "title": "Interstellar", "director": "Christopher Nolan", "release_year": 2014, "runtime_min": 169, "purchase_price_eur": 1200},
+    {"movie_id": 2, "title": "La vita è bella", "director": "Roberto Benigni", "release_year": 1997, "runtime_min": 116, "purchase_price_eur": 800},
+    {"movie_id": 3, "title": "Il buono, il brutto, il cattivo", "director": "Sergio Leone", "release_year": 1966, "runtime_min": 178, "purchase_price_eur": 650},
+    {"movie_id": 4, "title": "La città incantata", "director": "Hayao Miyazaki", "release_year": 2001, "runtime_min": 125, "purchase_price_eur": 950},
+    {"movie_id": 5, "title": "Inception", "director": "Christopher Nolan", "release_year": 2010, "runtime_min": 148, "purchase_price_eur": 1100},
 ]
 
-SCREENINGS = [
-    {"screening_id": 1, "movie_id": 1, "room_code": "S1", "starts_at": "2026-11-06T21:15:00", "is_3d": False},
-    {"screening_id": 2, "movie_id": 4, "room_code": "S2", "starts_at": "2026-11-06T18:00:00", "is_3d": False},
-    {"screening_id": 3, "movie_id": 5, "room_code": "S1", "starts_at": "2026-11-07T21:00:00", "is_3d": True},
-]
 
-REVIEWS = []
-
-
-class ReviewCreate(BaseModel):
-    author: str = Field(pattern=r"^[a-z0-9_]{3,20}$")
-    rating: int = Field(ge=1, le=5)
-    text: str = Field(min_length=10, max_length=500)
-    has_spoilers: bool = False
+class MovieCreate(BaseModel):
+    title: str = Field(min_length=1, max_length=200)
+    director: str = Field(min_length=1, max_length=100)
+    release_year: int = Field(ge=1888, le=2100)
+    runtime_min: int = Field(ge=1, le=600)
+    purchase_price_eur: int = Field(ge=0)
 
 
-# Queste due vanno scritte prima di /movies/{movie_id}: le routes si provano nell'ordine in cui sono dichiarate.
-@app.get("/movies/directors")
-def count_by_director():
-    counts = {}
-    for movie in MOVIES:
-        counts[movie["director"]] = counts.get(movie["director"], 0) + 1
-    return counts
+class MovieRead(BaseModel):
+    movie_id: int
+    title: str
+    director: str
+    release_year: int
+    runtime_min: int
 
 
-@app.get("/movies/search")
-def search_movies(title: str):
-    return [m for m in MOVIES if title.lower() in m["title"].lower()]
-
-
-@app.get("/movies/{movie_id}")
-def get_movie(movie_id: int):
+def find_movie(movie_id: int) -> dict:
     for movie in MOVIES:
         if movie["movie_id"] == movie_id:
             return movie
-    return None
+    raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"movie {movie_id} not found")
 
 
 @app.get("/movies")
-def list_movies(
-    director: str | None = None,
-    max_runtime: int = 300,
-    limit: Annotated[int, Query(ge=1, le=50)] = 10,
-):
-    selected = [
-        m for m in MOVIES
-        if (director is None or m["director"] == director) and m["runtime_min"] <= max_runtime
-    ]
-    return selected[:limit]
+def list_movies() -> list[MovieRead]:
+    return MOVIES
 
 
-@app.get("/screenings")
-def list_screenings(is_3d: bool | None = None):
-    return [s for s in SCREENINGS if is_3d is None or s["is_3d"] == is_3d]
+@app.get(
+    "/movies/{movie_id}",
+    response_model=MovieRead,
+    responses={404: {"description": "The movie does not exist"}},
+)
+def get_movie(movie_id: int):
+    return find_movie(movie_id)
 
 
-@app.get("/rooms/{room_code}/screenings")
-def list_room_screenings(room_code: Annotated[str, Path(pattern=r"^S[0-9]$")]):
-    return [s for s in SCREENINGS if s["room_code"] == room_code]
-
-
-@app.post("/movies/{movie_id}/reviews")
-def create_review(movie_id: int, review: ReviewCreate, source: str = "web"):
-    saved = {"review_id": len(REVIEWS) + 1, "movie_id": movie_id, "source": source}
-    saved.update(review.model_dump())
-    REVIEWS.append(saved)
+@app.post("/movies", status_code=status.HTTP_201_CREATED, responses={409: {"description": "Movie already in the catalogue"}})
+def create_movie(movie: MovieCreate) -> MovieRead:
+    for existing in MOVIES:
+        if existing["title"] == movie.title and existing["release_year"] == movie.release_year:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="movie already in the catalogue")
+    saved = {"movie_id": max(m["movie_id"] for m in MOVIES) + 1}
+    saved.update(movie.model_dump())
+    MOVIES.append(saved)
     return saved
 
 
-@app.get("/reviews")
-def list_reviews():
-    return REVIEWS
+@app.delete("/movies/{movie_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_movie(movie_id: int):
+    MOVIES.remove(find_movie(movie_id))
