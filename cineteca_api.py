@@ -1,14 +1,23 @@
-"""L'API della cineteca su PostgreSQL: CRUD con SQLAlchemy ORM e una Session aperta dentro ogni route."""
+"""L'API della cineteca su PostgreSQL: schemi Pydantic a fondo, PATCH e Settings."""
+
 from fastapi import FastAPI, HTTPException, status
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from database import engine
+from database import engine, settings
 from models import Movie, Room
 
-app = FastAPI(title="Cineteca API", version="0.4.0")
+app = FastAPI(title=settings.app_name, version=settings.app_version)
+
+
+def tidy_title(value: str) -> str:
+    """Toglie gli spazi in eccesso dentro il titolo e rifiuta un titolo vuoto."""
+    cleaned = " ".join(value.split())
+    if not cleaned:
+        raise ValueError("title cannot be blank")
+    return cleaned
 
 
 class RoomRead(BaseModel):
@@ -18,22 +27,58 @@ class RoomRead(BaseModel):
     seats: int
 
 
-class MovieCreate(BaseModel):
+class MovieBase(BaseModel):
+    """I campi che un film ha sia quando entra sia quando esce."""
+
+    model_config = ConfigDict(str_strip_whitespace=True)
+
     title: str = Field(min_length=1, max_length=200)
     director_id: int = Field(ge=1)
     release_year: int = Field(ge=1888, le=2100)
     runtime_min: int = Field(ge=1, le=600)
-    purchase_price_eur: int = Field(ge=0)
     plot: str | None = Field(default=None, max_length=2000)
 
+    @field_validator("title")
+    @classmethod
+    def clean_title(cls, value: str) -> str:
+        return tidy_title(value)
 
-class MovieRead(BaseModel):
+
+class MovieCreate(MovieBase):
+    purchase_price_eur: int = Field(ge=0)
+
+
+class MovieRead(MovieBase):
+    model_config = ConfigDict(from_attributes=True)
+
     movie_id: int
-    title: str
-    director_id: int
-    release_year: int
-    runtime_min: int
-    plot: str | None
+
+
+class MovieUpdate(BaseModel):
+    """Tutti i campi di MovieCreate, ma nessuno obbligatorio: serve al PATCH."""
+
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
+
+    title: str | None = Field(default=None, min_length=1, max_length=200)
+    director_id: int | None = Field(default=None, ge=1)
+    release_year: int | None = Field(default=None, ge=1888, le=2100)
+    runtime_min: int | None = Field(default=None, ge=1, le=600)
+    purchase_price_eur: int | None = Field(default=None, ge=0)
+    plot: str | None = Field(default=None, max_length=2000)
+
+    @field_validator("title")
+    @classmethod
+    def clean_title(cls, value: str | None) -> str | None:
+        # Il validator vede anche un "title": null esplicito.
+        return value if value is None else tidy_title(value)
+
+    @model_validator(mode="after")
+    def reject_null_fields(self):
+        # Solo plot può essere azzerato: per gli altri campi null non ha senso.
+        for name in self.model_fields_set:
+            if name != "plot" and getattr(self, name) is None:
+                raise ValueError(f"{name} cannot be null")
+        return self
 
 
 @app.get("/rooms")
@@ -131,6 +176,34 @@ def replace_movie(movie_id: int, data: MovieCreate):
         movie.runtime_min = data.runtime_min
         movie.purchase_price_eur = data.purchase_price_eur
         movie.plot = data.plot
+        try:
+            session.commit()
+        except IntegrityError:
+            session.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="movie already in the catalogue or director_id not found",
+            )
+        session.refresh(movie)
+        return movie
+
+
+@app.patch(
+    "/movies/{movie_id}",
+    response_model=MovieRead,
+    responses={
+        404: {"description": "The movie does not exist"},
+        409: {"description": "Movie already in the catalogue or director_id not found"},
+    },
+)
+def update_movie(movie_id: int, changes: MovieUpdate):
+    with Session(engine) as session:
+        movie = session.get(Movie, movie_id)
+        if movie is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"movie {movie_id} not found")
+        # Solo i campi che il client ha scritto davvero: gli altri restano come sono.
+        for name, value in changes.model_dump(exclude_unset=True).items():
+            setattr(movie, name, value)
         try:
             session.commit()
         except IntegrityError:
