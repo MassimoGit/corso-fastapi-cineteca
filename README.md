@@ -1,6 +1,6 @@
-# Cineteca API: codice dell'appendice API08
+# Cineteca API: codice dell'appendice API10Y
 
-Server FastAPI e script degli esempi come sono alla fine dell'appendice API08 del corso.
+Server FastAPI e script degli esempi come sono alla fine dell'appendice API10Y del corso.
 Ogni branch è una lezione: `git diff api04b api05` mostra cosa cambia fra due lezioni.
 
 ```bash
