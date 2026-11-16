@@ -77,6 +77,9 @@ class MovieUpdate(BaseModel):
 class ReviewCreate(BaseModel):
     """Il corpo di una recensione: l'autore non c'è, lo dice l'header X-Spectator."""
 
+    # Gli spazi ai bordi si tolgono prima di contare i caratteri: dieci spazi non sono una recensione
+    model_config = ConfigDict(str_strip_whitespace=True)
+
     rating: int = Field(ge=1, le=5)
     text: str = Field(min_length=10, max_length=500)
     has_spoilers: bool = False
