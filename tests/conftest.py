@@ -7,9 +7,10 @@ from sqlalchemy.orm import Session
 from app.database import Settings, get_settings, settings
 from app.dependencies import get_session
 from app.main import app
-from app.models import Actor, Base, Director, Movie, MovieActor, Review, Room
+from app.models import Actor, Base, Director, Movie, MovieActor, Review, Room, Spectator
 
 TEST_SCHEMA = "cineteca_test"
+TEST_API_KEY = "test-admin-key"  # la chiave di amministrazione dei test: non è quella del .env
 
 
 @pytest.fixture
@@ -43,6 +44,8 @@ def fill_test_schema(session: Session) -> None:
         MovieActor(movie=buono, actor=eastwood, character_name="il Biondo"),
         Room(code="S1", name="Sala Fellini", seats=120),
         Room(code="S2", name="Sala Leone", seats=60),
+        Spectator(name="giulia_88", token="giulia-test-token"),
+        Spectator(name="marco_cine", token="marco-test-token"),
     ])
     session.flush()  # i film hanno gli id: ora si può scrivere la recensione
     session.add(
@@ -85,8 +88,8 @@ def session(engine):
 
 @pytest.fixture
 def test_settings() -> Settings:
-    """Le Settings dei test: le tessere sono quelle scelte qui, non quelle dell'app."""
-    return Settings(spectators=["tester", "other_tester"])
+    """Le Settings dei test: la chiave di amministrazione è quella scelta qui, non quella del .env."""
+    return Settings(admin_api_key=TEST_API_KEY)
 
 
 @pytest.fixture
@@ -103,3 +106,9 @@ def client(session, test_settings):
     app.dependency_overrides[get_settings] = lambda: test_settings
     yield TestClient(app)
     app.dependency_overrides.clear()
+
+
+@pytest.fixture
+def admin_client(client):
+    """Lo stesso app e gli stessi override di client, ma ogni richiesta porta la chiave di amministrazione."""
+    return TestClient(app, headers={"X-API-Key": TEST_API_KEY})

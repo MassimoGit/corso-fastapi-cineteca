@@ -20,9 +20,9 @@ class Settings(BaseSettings):
     pool_timeout: float = 30
     pool_pre_ping: bool = True
     app_name: str = "Cineteca API"
-    app_version: str = "0.7.1"
-    # Le tessere dei clienti della cineteca: chi può scrivere una recensione
-    spectators: list[str] = ["giulia_88", "marco_cine", "anna_film", "luca_77"]
+    app_version: str = "0.10.0"
+    # La chiave di amministrazione: nel .env, mai nel codice. SecretStr non la fa comparire nei print e nei log.
+    admin_api_key: SecretStr
 
 
 settings = Settings()

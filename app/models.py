@@ -100,3 +100,13 @@ class Review(Base):
     text: Mapped[str] = mapped_column(String(500))
     has_spoilers: Mapped[bool] = mapped_column(server_default=false())
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class Spectator(Base):
+    """Uno spettatore con la sua tessera: il token è il segreto che lo identifica."""
+
+    __tablename__ = "spectators"
+
+    spectator_id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(String(20), unique=True)
+    token: Mapped[str] = mapped_column(String(64), unique=True)

@@ -18,6 +18,6 @@ def list_reviews(movie_id: int, session: SessionDep) -> list[ReviewRead]:
     return reviews_service.list_reviews(session, movie_id)
 
 
-@router.post("", status_code=status.HTTP_201_CREATED, responses={401: {"description": "Unknown spectator"}})
+@router.post("", status_code=status.HTTP_201_CREATED, responses={401: {"description": "Missing or invalid spectator token"}})
 def create_review(movie_id: int, review: ReviewCreate, spectator: SpectatorDep, session: SessionDep) -> ReviewRead:
     return reviews_service.create_review(session, movie_id, spectator, review)

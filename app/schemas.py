@@ -75,7 +75,7 @@ class MovieUpdate(BaseModel):
 
 
 class ReviewCreate(BaseModel):
-    """Il corpo di una recensione: l'autore non c'è, lo dice l'header X-Spectator."""
+    """Il corpo di una recensione: l'autore non c'è, lo dice il token dell'header Authorization."""
 
     # Gli spazi ai bordi si tolgono prima di contare i caratteri: dieci spazi non sono una recensione
     model_config = ConfigDict(str_strip_whitespace=True)
@@ -91,6 +91,23 @@ class ReviewRead(ReviewCreate):
     review_id: int
     movie_id: int
     author: str
+
+
+class SpectatorCreate(BaseModel):
+    name: str = Field(min_length=1, max_length=20)
+
+
+class SpectatorRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    spectator_id: int
+    name: str
+
+
+class SpectatorCard(SpectatorRead):
+    """La risposta alla registrazione: l'unica volta in cui il token esce dall'API."""
+
+    token: str
 
 
 class DirectorRead(BaseModel):
