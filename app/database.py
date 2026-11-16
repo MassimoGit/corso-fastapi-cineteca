@@ -5,12 +5,13 @@ from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from sqlalchemy import create_engine
 
-# La cartella che contiene app/: il .env sta lì, accanto alla cartella app
+# La cartella che contiene app/: il .env sta lì, oppure nella cartella codice/ del repository del corso
 BASE = Path(__file__).resolve().parent.parent
+ENV_FILE = BASE / ".env" if (BASE / ".env").exists() else BASE.parent / ".env"
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=BASE / ".env", extra="ignore")
+    model_config = SettingsConfigDict(env_file=ENV_FILE, extra="ignore")
 
     database_url: SecretStr
     echo_sql: bool = False
@@ -20,9 +21,13 @@ class Settings(BaseSettings):
     pool_timeout: float = 30
     pool_pre_ping: bool = True
     app_name: str = "Cineteca API"
-    app_version: str = "0.11.0"
+    app_version: str = "0.10.1"
     # La chiave di amministrazione: nel .env, mai nel codice. SecretStr non la fa comparire nei print e nei log.
     admin_api_key: SecretStr
+    # La chiave per firmare i JWT, l'algoritmo consentito e la durata di validità in minuti
+    jwt_secret_key: SecretStr
+    jwt_algorithm: str = "HS256"
+    jwt_expire_minutes: int = 30
 
 
 settings = Settings()

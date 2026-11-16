@@ -38,6 +38,13 @@ class SpectatorConflictError(Exception):
         super().__init__(f"spectator {name} already exists")
 
 
+class UserConflictError(Exception):
+    """Esiste già un utente con questo username."""
+
+    def __init__(self, username: str):
+        super().__init__(f"user {username} already exists")
+
+
 # Quale status HTTP corrisponde a quale eccezione del dominio. È l'unico punto che conosce entrambi i mondi.
 STATUS_BY_ERROR = {
     MovieNotFoundError: status.HTTP_404_NOT_FOUND,
@@ -45,6 +52,7 @@ STATUS_BY_ERROR = {
     MovieConflictError: status.HTTP_409_CONFLICT,
     DirectorConflictError: status.HTTP_409_CONFLICT,
     SpectatorConflictError: status.HTTP_409_CONFLICT,
+    UserConflictError: status.HTTP_409_CONFLICT,
 }
 
 

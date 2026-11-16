@@ -1,4 +1,4 @@
-"""I model ORM della cineteca: una classe per ognuna delle sette tabelle dello schema cineteca."""
+"""I model ORM della cineteca: le tabelle del catalogo più la tabella degli utenti dello staff."""
 from datetime import datetime
 from decimal import Decimal
 
@@ -110,3 +110,14 @@ class Spectator(Base):
     spectator_id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(20), unique=True)
     token: Mapped[str] = mapped_column(String(64), unique=True)
+
+
+class User(Base):
+    """Un utente dello staff della cineteca: login con username, password in hash e ruolo."""
+
+    __tablename__ = "users"
+
+    user_id: Mapped[int] = mapped_column(primary_key=True)
+    username: Mapped[str] = mapped_column(String(50), unique=True)
+    hashed_password: Mapped[str] = mapped_column(String(255))
+    role: Mapped[str] = mapped_column(String(20), server_default="staff")

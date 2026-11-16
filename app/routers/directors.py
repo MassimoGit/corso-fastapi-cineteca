@@ -1,17 +1,17 @@
-"""Le routes dei registi."""
+"""Le routes dei registi: lettura libera, creazione riservata allo staff."""
 from fastapi import APIRouter, Depends, status
 
-from app.dependencies import SessionDep, require_api_key
+from app.dependencies import SessionDep, get_current_user
 from app.schemas import DirectorCreate, DirectorRead
 from app.services import directors as directors_service
 
 router = APIRouter(prefix="/directors", tags=["directors"])
 
-admin_router = APIRouter(
+staff_router = APIRouter(
     prefix="/directors",
     tags=["directors"],
-    dependencies=[Depends(require_api_key)],
-    responses={401: {"description": "Missing or invalid API key"}},
+    dependencies=[Depends(get_current_user)],
+    responses={401: {"description": "Missing or invalid bearer token"}},
 )
 
 
@@ -20,7 +20,7 @@ def list_directors(session: SessionDep) -> list[DirectorRead]:
     return directors_service.list_directors(session)
 
 
-@admin_router.post(
+@staff_router.post(
     "",
     status_code=status.HTTP_201_CREATED,
     responses={409: {"description": "A director with this name already exists"}},

@@ -7,7 +7,7 @@ from fastapi import Depends, FastAPI
 from app.database import engine, settings
 from app.dependencies import SettingsDep, log_request
 from app.errors import register_error_handlers
-from app.routers import assistant, catalogue, directors, movies, reports, reviews, rooms, spectators
+from app.routers import assistant, auth, catalogue, directors, movies, reports, reviews, rooms, spectators
 
 
 @asynccontextmanager
@@ -22,10 +22,12 @@ app = FastAPI(
 )
 register_error_handlers(app)
 
+app.include_router(auth.router)
 app.include_router(movies.router)
+app.include_router(movies.staff_router)
 app.include_router(movies.admin_router)
 app.include_router(directors.router)
-app.include_router(directors.admin_router)
+app.include_router(directors.staff_router)
 app.include_router(catalogue.router)
 app.include_router(rooms.router)
 app.include_router(reviews.router)

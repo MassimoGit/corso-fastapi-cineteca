@@ -1,5 +1,5 @@
 """Gli schemi Pydantic della cineteca: quello che entra e quello che esce dall'API."""
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, SecretStr, field_validator, model_validator
 
 
 def tidy_title(value: str) -> str:
@@ -108,6 +108,32 @@ class SpectatorCard(SpectatorRead):
     """La risposta alla registrazione: l'unica volta in cui il token esce dall'API."""
 
     token: str
+
+
+class UserCreate(BaseModel):
+    """Dati di registrazione: niente campo role (mass assignment) e password protetta da SecretStr."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    username: str = Field(min_length=3, max_length=50)
+    password: SecretStr = Field(min_length=8, max_length=128)
+
+
+class UserRead(BaseModel):
+    """Risposta pubblica di un utente: mai la password né il suo hash."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    user_id: int
+    username: str
+    role: str
+
+
+class Token(BaseModel):
+    """Risposta standard del endpoint /token per il Bearer token."""
+
+    access_token: str
+    token_type: str = "bearer"
 
 
 class DirectorRead(BaseModel):

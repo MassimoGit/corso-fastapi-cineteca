@@ -1,19 +1,27 @@
-"""Le routes dei film."""
+"""Le routes dei film: letture aperte, inserimento e modifica per lo staff, cancellazione solo admin."""
 from fastapi import APIRouter, Depends, status
 
-from app.dependencies import MovieDep, PageDep, SessionDep, require_api_key
+from app.dependencies import MovieDep, PageDep, SessionDep, get_current_user, require_admin
 from app.schemas import CastMember, MovieCreate, MovieDetail, MovieRead, MovieUpdate
 from app.services import movies as movies_service
 
-# Le letture sono libere
+# Le letture restano libere
 router = APIRouter(prefix="/movies", tags=["movies"])
 
-# Le scritture vogliono la chiave: la dependency del router vale per ogni route che si aggiunge qui sotto
+# Inserimento e modifica: basta essere autenticati (staff o admin)
+staff_router = APIRouter(
+    prefix="/movies",
+    tags=["movies"],
+    dependencies=[Depends(get_current_user)],
+    responses={401: {"description": "Missing or invalid bearer token"}},
+)
+
+# Cancellazione: riservata al ruolo admin
 admin_router = APIRouter(
     prefix="/movies",
     tags=["movies"],
-    dependencies=[Depends(require_api_key)],
-    responses={401: {"description": "Missing or invalid API key"}},
+    dependencies=[Depends(require_admin)],
+    responses={401: {"description": "Missing or invalid bearer token"}, 403: {"description": "Admin role required"}},
 )
 
 
@@ -43,7 +51,7 @@ def list_cast(movie_id: int, session: SessionDep) -> list[CastMember]:
     return movies_service.list_cast(session, movie_id)
 
 
-@admin_router.post(
+@staff_router.post(
     "",
     status_code=status.HTTP_201_CREATED,
     responses={409: {"description": "Movie already in the catalogue or director_id not found"}},
@@ -52,7 +60,7 @@ def create_movie(movie: MovieCreate, session: SessionDep) -> MovieRead:
     return movies_service.create_movie(session, movie)
 
 
-@admin_router.patch(
+@staff_router.patch(
     "/{movie_id}",
     responses={
         404: {"description": "The movie does not exist"},
