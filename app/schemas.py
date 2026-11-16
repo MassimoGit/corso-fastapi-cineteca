@@ -17,6 +17,7 @@ class RoomRead(BaseModel):
     code: str
     name: str
     seats: int
+    is_accessible: bool
 
 
 class MovieBase(BaseModel):
