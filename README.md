@@ -1,6 +1,6 @@
-# Cineteca API: codice dellezione API07X
+# Cineteca API: codice dell'appendice API07X
 
-Server FastAPI e script degli esempi come sono alla fine dellezione API07X del corso.
+Server FastAPI e script degli esempi come sono alla fine dell'appendice API07X del corso.
 Ogni branch è una lezione: `git diff api04b api05` mostra cosa cambia fra due lezioni.
 
 ```bash
