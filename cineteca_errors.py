@@ -28,17 +28,17 @@ class MovieNotFoundError(Exception):
         super().__init__(f"movie {movie_id} not found")
         self.movie_id = movie_id
 
-
+"""Film non trovato gestice MovieNotFoundError """
 @app.exception_handler(MovieNotFoundError)
 def handle_movie_not_found(request: Request, exc: MovieNotFoundError):
     return JSONResponse(status_code=status.HTTP_404_NOT_FOUND, content={"error": str(exc)})
 
-
+"""Generico"""
 @app.exception_handler(StarletteHTTPException)
 def handle_http_exception(request: Request, exc: StarletteHTTPException):
     return JSONResponse(status_code=exc.status_code, content={"error": exc.detail}, headers=exc.headers)
 
-
+"""Gestisce la HTTP_422_UNPROCESSABLE_CONTENT per validazione fallita"""
 @app.exception_handler(RequestValidationError)
 def handle_validation_error(request: Request, exc: RequestValidationError):
     first = exc.errors()[0]
