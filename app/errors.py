@@ -1,5 +1,6 @@
 """Le eccezioni del dominio della cineteca e il modo in cui diventano risposte HTTP."""
 from fastapi import FastAPI, Request, status
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 
@@ -60,7 +61,23 @@ def handle_domain_error(request: Request, exc: Exception):
     return JSONResponse(status_code=STATUS_BY_ERROR[type(exc)], content={"detail": str(exc)})
 
 
+def handle_validation_error(request: Request, exc: RequestValidationError):
+    errors = {}
+    for error in exc.errors():
+        # loc è ("path", "movie_id"), ("body", "title") oppure ("body",): la sorgente si toglie
+        parts = error["loc"][1:] or error["loc"]
+        field = ".".join(str(part) for part in parts)
+        if field not in errors:
+            errors[field] = []
+        errors[field].append(error["msg"].removeprefix("Value error, "))
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+        content={"detail": "validation failed", "errors": errors},
+    )
+
+
 def register_error_handlers(app: FastAPI) -> None:
     """Collega ogni eccezione al suo gestore. add_exception_handler è ciò che fa la chiocciola @app.exception_handler."""
     for error_class in STATUS_BY_ERROR:
         app.add_exception_handler(error_class, handle_domain_error)
+    app.add_exception_handler(RequestValidationError, handle_validation_error)

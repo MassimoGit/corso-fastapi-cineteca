@@ -31,7 +31,7 @@ def test_register_user_forbids_role_mass_assignment(client):
         json={"username": "mallory", "password": "segreta-password-1", "role": "admin"},
     )
     assert response.status_code == 422
-    assert response.json()["detail"][0]["type"] == "extra_forbidden"
+    assert list(response.json()["errors"]) == ["role"]
 
 
 def test_register_duplicate_username_returns_409(client):
