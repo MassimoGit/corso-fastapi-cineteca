@@ -22,6 +22,4 @@ def test_get_movie_with_a_bad_id_returns_422():
     print("\n  ->", response.status_code)
     print("  ->", response.json())
     assert response.status_code == 422
-    error = response.json()["detail"][0]
-    assert error["loc"] == ["path", "movie_id"]
-    assert error["type"] == "int_parsing"
+    assert list(response.json()["errors"]) == ["movie_id"]
