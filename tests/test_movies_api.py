@@ -42,9 +42,7 @@ def test_get_movie_returns_404_for_an_unknown_id(client):
 def test_get_movie_returns_422_for_an_id_that_is_not_a_number(client):
     response = client.get("/movies/abc")
     assert response.status_code == 422
-    error = response.json()["detail"][0]
-    assert error["loc"] == ["path", "movie_id"]
-    assert error["type"] == "int_parsing"
+    assert list(response.json()["errors"]) == ["movie_id"]
 
 
 def test_create_movie_returns_201_and_the_movie_can_be_read_back(admin_client, movie_data):
@@ -77,7 +75,7 @@ def test_create_movie_with_an_invalid_year_returns_422(admin_client, movie_data)
     movie_data["release_year"] = 1500
     response = admin_client.post("/movies", json=movie_data)
     assert response.status_code == 422
-    assert response.json()["detail"][0]["loc"] == ["body", "release_year"]
+    assert list(response.json()["errors"]) == ["release_year"]
 
 
 def test_update_movie_changes_only_the_given_field(admin_client):
