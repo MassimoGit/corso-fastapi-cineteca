@@ -56,13 +56,13 @@ def test_create_review_for_an_unknown_movie_returns_404(client):
 def test_create_review_with_a_rating_out_of_range_returns_422(client):
     response = client.post("/movies/2/reviews", json={**REVIEW, "rating": 6}, headers=GIULIA)
     assert response.status_code == 422
-    assert response.json()["detail"][0]["loc"] == ["body", "rating"]
+    assert list(response.json()["errors"]) == ["rating"]
 
 
 def test_create_review_rejects_a_text_made_of_spaces(client):
     response = client.post("/movies/2/reviews", json={"rating": 4, "text": " " * 12}, headers=GIULIA)
     assert response.status_code == 422
-    assert response.json()["detail"][0]["loc"] == ["body", "text"]
+    assert list(response.json()["errors"]) == ["text"]
 
 
 def test_list_reviews_returns_the_reviews_of_the_movie(client):
