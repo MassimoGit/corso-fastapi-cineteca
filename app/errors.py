@@ -51,9 +51,12 @@ def handle_validation_error(request: Request, exc: RequestValidationError):
         # loc è ("path", "movie_id"), ("body", "title") oppure ("body",): la sorgente si toglie
         parts = error["loc"][1:] or error["loc"]
         field = ".".join(str(part) for part in parts)
+        message = error["msg"].removeprefix("Value error, ")
         if field not in errors:
             errors[field] = []
-        errors[field].append(error["msg"].removeprefix("Value error, "))
+        # lo stesso errore può arrivare due volte: se ne tiene una copia sola
+        if message not in errors[field]:
+            errors[field].append(message)
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
         content={"detail": "validation failed", "errors": errors},
